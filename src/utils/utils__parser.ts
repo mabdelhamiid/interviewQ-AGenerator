@@ -61,7 +61,7 @@ export function robustParseJSON(raw: string): { questions: Array<{ q: string; a:
 export function buildPrompt(cat: string, level: string, existing: Array<{ q: string }>, count: number): string {
   const prev = existing.slice(-15).map(q => q.q).join('\n- ')
   return `أنشئ ${count} أسئلة مقابلة frontend احترافية جديدة ومختلفة.
-الموضوع: ${cat}
+  الموضوع: ${cat}
 المستوى: ${level}
 ${prev ? `\nلا تكرر:\n- ${prev}\n` : ''}
 أرجع JSON فقط بهذا الشكل الدقيق:
