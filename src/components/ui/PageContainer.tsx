@@ -6,7 +6,7 @@ interface PageContainerProps {
 }
 
 const PageContainer: FC<PageContainerProps> = ({ children, className = '' }) => (
-  <div className={['max-w-[1280px] mx-auto px-6 pb-16 w-full', className].join(' ')}>
+  <div className={['mx-auto w-full max-w-[1200px] px-[clamp(20px,4vw,56px)] py-8', className].join(' ')}>
     {children}
   </div>
 )

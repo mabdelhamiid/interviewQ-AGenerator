@@ -1,10 +1,34 @@
+/**
+ * HomePage.tsx
+ * ------------
+ * Landing page for Interview Coach.
+ *
+ * Sections (top → bottom):
+ *  1. Hero      — headline split-text reveal, floating 3D mock card, CTA buttons
+ *  2. Stats Bar — animated counters triggered on scroll enter
+ *  3. Features  — 4 glass cards with stagger reveal
+ *  4. Categories — chip grid with wave stagger
+ *  5. Providers  — free API provider cards
+ *
+ * Motion:
+ *  - GSAP ScrollTrigger owns all scroll-based animations
+ *  - Mouse parallax on hero orbs via mousemove
+ *  - All animations wrapped in gsap.context() for clean unmount
+ */
 import { type FC, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import gsap from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useAppContext } from '../context/AppContext'
 import { CATEGORIES, LEVELS } from '../constants'
 import { dynColor } from '../utils/dynColor'
 
-/* ── Data ───────────────────────────────────────────────────── */
+gsap.registerPlugin(ScrollTrigger)
+
+/* ══════════════════════════════════════════════════════════════
+   DATA
+   ══════════════════════════════════════════════════════════════ */
+
 const FREE_PROVIDERS = [
   { name: 'Google Gemini', desc: '3 موديلات مجانية',         color: '#4285F4', link: 'https://aistudio.google.com/app/apikey'     },
   { name: 'Groq',          desc: 'الأسرع · مجاني تماماً',    color: '#F55036', link: 'https://console.groq.com/keys'              },
@@ -21,77 +45,72 @@ const FEATURES = [
   { icon: '📚', title: 'احفظ وراجع',        desc: 'احفظ أسئلتك المفضلة وراجعها وقت ما تريد — بدون إنترنت',               accent: '#f59e0b'               },
 ]
 
-/* ── Hooks ──────────────────────────────────────────────────── */
-function useInView(ref: React.RefObject<Element | null>, threshold = 0.15) {
-  const [inView, setInView] = useState(false)
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    const obs = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) setInView(true) },
-      { threshold },
-    )
-    obs.observe(el)
-    return () => obs.disconnect()
-  }, [ref, threshold])
-  return inView
-}
+/* Stats bar items — values are animated by GSAP */
+const STATS_ITEMS = [
+  { target: 19,   label: 'AI Model'    },
+  { target: 18,   label: 'تصنيف تقني'  },
+  { target: 3,    label: 'مستوى'       },
+  { target: null, label: 'سؤال محفوظ'  }, // null = uses totalQuestions from context
+]
 
-function useCounter(target: number, active: boolean, duration = 1200) {
-  const [value, setValue] = useState(0)
-  useEffect(() => {
-    if (!active) return
-    if (target === 0) { setValue(0); return }
-    let current = 0
-    const increment = target / (duration / 16)
-    const id = setInterval(() => {
-      current += increment
-      if (current >= target) { setValue(target); clearInterval(id); return }
-      setValue(Math.floor(current))
-    }, 16)
-    return () => clearInterval(id)
-  }, [active, target, duration])
-  return value
-}
-
-/* ── MockCard ───────────────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════
+   MOCK CARD — 3D preview card floating in hero
+   ══════════════════════════════════════════════════════════════ */
 const MockCard: FC = () => (
+  /* Perspective wrapper gives the card its 3D tilt */
   <div style={{ perspective: '1000px', width: '100%', maxWidth: 360 }}>
     <div
       className="glass-card"
       style={{
-        animation: 'floatY 4s ease-in-out infinite',
         padding: '24px 20px',
-        transform: 'rotateY(-7deg) rotateX(4deg)',
+        transform: 'rotateY(-8deg) rotateX(5deg)',
         transformStyle: 'preserve-3d',
+        willChange: 'transform',
       }}
     >
-      {/* Badges */}
+      {/* Category + level badges */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 10px', borderRadius: 99, background: 'rgba(59,130,246,0.14)', color: 'var(--color-accent)', border: '1px solid rgba(59,130,246,0.28)' }}>
+        <span style={{
+          fontSize: 10, fontWeight: 700, padding: '3px 10px', borderRadius: 99,
+          background: 'rgba(59,130,246,0.13)', color: 'var(--color-accent)',
+          border: '1px solid rgba(59,130,246,0.25)',
+        }}>
           JavaScript
         </span>
-        <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 10px', borderRadius: 99, background: 'rgba(124,92,252,0.14)', color: 'var(--color-primary)', border: '1px solid rgba(124,92,252,0.28)' }}>
+        <span style={{
+          fontSize: 10, fontWeight: 700, padding: '3px 10px', borderRadius: 99,
+          background: 'rgba(124,92,252,0.13)', color: 'var(--color-primary)',
+          border: '1px solid rgba(124,92,252,0.25)',
+        }}>
           Senior
         </span>
       </div>
 
-      {/* Question */}
-      <p style={{ fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 700, color: 'var(--color-text)', lineHeight: 1.55, marginBottom: 14 }}>
+      {/* Sample question text */}
+      <p style={{
+        fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 700,
+        color: 'var(--color-text)', lineHeight: 1.55, marginBottom: 14,
+      }}>
         ما الفرق بين Prototype و Class في JavaScript؟
       </p>
 
       {/* Divider */}
-      <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', marginBottom: 14 }} />
+      <div style={{ height: 1, background: 'rgba(255,255,255,0.055)', marginBottom: 14 }} />
 
-      {/* Answer */}
-      <p style={{ fontSize: 12, color: 'var(--color-text-muted)', lineHeight: 1.75, marginBottom: 14 }}>
+      {/* Sample answer preview */}
+      <p style={{ fontSize: 12, color: 'var(--color-text-muted)', lineHeight: 1.8, marginBottom: 14 }}>
         كلاهما يُستخدم لإنشاء objects وتحقيق الـ inheritance، لكن Class هو syntactic sugar فوق الـ prototype chain...
       </p>
 
-      {/* Code snippet */}
-      <div style={{ background: 'rgba(0,0,0,0.40)', borderRadius: 8, padding: '10px 14px', marginBottom: 14 }}>
-        <code style={{ fontFamily: 'var(--font-family-mono)', fontSize: 11, color: '#93c5fd', display: 'block', lineHeight: 1.65 }}>
+      {/* Code snippet block */}
+      <div style={{
+        background: 'rgba(0,0,0,0.42)', borderRadius: 8,
+        padding: '10px 14px', marginBottom: 14,
+      }}>
+        <code style={{
+          fontFamily: 'var(--font-family-mono, monospace)', fontSize: 11,
+          color: '#93c5fd', display: 'block', lineHeight: 1.7,
+        }}>
           {'class Animal {'}<br />
           {'  constructor(name) {'}<br />
           {'    this.name = name'}<br />
@@ -100,98 +119,277 @@ const MockCard: FC = () => (
         </code>
       </div>
 
-      {/* Footer */}
+      {/* Card footer actions */}
       <div style={{ display: 'flex', gap: 8 }}>
-        <span style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, background: 'rgba(16,185,129,0.12)', color: '#10b981', fontWeight: 600 }}>✓ محفوظ</span>
-        <span style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, background: 'rgba(255,255,255,0.05)', color: 'var(--color-text-subtle)', fontWeight: 600 }}>↗ توسيع</span>
+        <span style={{
+          fontSize: 11, padding: '4px 10px', borderRadius: 6,
+          background: 'rgba(16,185,129,0.11)', color: '#10b981', fontWeight: 600,
+        }}>✓ محفوظ</span>
+        <span style={{
+          fontSize: 11, padding: '4px 10px', borderRadius: 6,
+          background: 'rgba(255,255,255,0.05)', color: 'var(--color-text-subtle)', fontWeight: 600,
+        }}>↗ توسيع</span>
       </div>
     </div>
   </div>
 )
 
-/* ── HomePage ───────────────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════
+   HOMEPAGE
+   ══════════════════════════════════════════════════════════════ */
 const HomePage: FC = () => {
-  const navigate     = useNavigate()
+  const navigate = useNavigate()
   const { totalQuestions, questionSets, keys } = useAppContext()
-  const hasAnyKey    = Object.values(keys).some(Boolean)
+  const hasAnyKey = Object.values(keys).some(Boolean)
 
-  const statsRef    = useRef<HTMLDivElement>(null)
-  const featuresRef = useRef<HTMLDivElement>(null)
+  /* ── Refs for GSAP targets ── */
+  const pageRef      = useRef<HTMLDivElement>(null)
+  const headlineRef  = useRef<HTMLHeadingElement>(null)
+  const heroTextRef  = useRef<HTMLDivElement>(null)
+  const heroCardRef  = useRef<HTMLDivElement>(null)
+  const statsRef     = useRef<HTMLDivElement>(null)
+  const featuresRef  = useRef<HTMLDivElement>(null)
+  const catsRef      = useRef<HTMLDivElement>(null)
+  const providersRef = useRef<HTMLDivElement>(null)
+  const orb1Ref      = useRef<HTMLDivElement>(null)
+  const orb2Ref      = useRef<HTMLDivElement>(null)
 
-  const statsInView    = useInView(statsRef)
-  const featuresInView = useInView(featuresRef)
+  /* Animated counter display values */
+  const [counts, setCounts] = useState([0, 0, 0, 0])
 
-  const c1 = useCounter(19,            statsInView)
-  const c2 = useCounter(18,            statsInView)
-  const c3 = useCounter(3,             statsInView)
-  const c4 = useCounter(totalQuestions, statsInView)
+  /* ── GSAP animations ── */
+  useEffect(() => {
+    /* Wrap in gsap.context for clean scope and unmount cleanup */
+    const ctx = gsap.context(() => {
 
-  /* ── btn helpers ── */
-  const accentBtn = {
-    padding: '13px 30px', borderRadius: 12, border: 'none',
-    background: 'var(--color-accent)', color: '#fff',
-    fontWeight: 700, fontSize: 14, cursor: 'pointer',
-    boxShadow: 'var(--shadow-glow)',
-    transition: 'all var(--transition-fast)',
-    fontFamily: 'inherit',
-  } satisfies React.CSSProperties
+      /* ── 1. Hero headline reveal ── */
+      if (headlineRef.current) {
+        const words = headlineRef.current.querySelectorAll('.hero-word')
+        gsap.from(words, {
+          opacity: 0, y: 16,
+          duration: 0.45,
+          stagger: 0.07,
+          ease: 'power2.out',
+          delay: 0.1,
+        })
+      }
 
-  const ghostBtn = {
-    padding: '13px 30px', borderRadius: 12,
-    background: 'transparent', color: 'var(--color-text)',
-    fontWeight: 600, fontSize: 14, cursor: 'pointer',
-    border: '1px solid rgba(255,255,255,0.14)',
-    transition: 'all var(--transition-fast)',
-    fontFamily: 'inherit',
-  } satisfies React.CSSProperties
+      /* ── 2. Hero body text + CTA fade up ── */
+      if (heroTextRef.current) {
+        const items = heroTextRef.current.querySelectorAll('.hero-item')
+        gsap.fromTo(
+          items,
+          { opacity: 0, y: 30 },
+          {
+            opacity: 1, y: 0,
+            duration: 0.65,
+            stagger: 0.1,
+            ease: 'power2.out',
+            delay: 0.5,
+          },
+        )
+      }
 
+      /* ── 3. Hero card: fade in ── */
+      if (heroCardRef.current) {
+        gsap.from(heroCardRef.current, {
+          opacity: 0, y: 16,
+          duration: 0.45,
+          ease: 'power2.out',
+          delay: 0.3,
+        })
+      }
+
+      /* ── 4. Stats counter animation ── */
+      if (statsRef.current) {
+        const targets = [19, 18, 3, totalQuestions]
+        const obj = { v0: 0, v1: 0, v2: 0, v3: 0 }
+
+        ScrollTrigger.create({
+          trigger: statsRef.current,
+          start: 'top 85%',
+          once: true,
+          onEnter: () => {
+            gsap.to(obj, {
+              v0: targets[0], v1: targets[1],
+              v2: targets[2], v3: targets[3],
+              duration: 1.4,
+              ease: 'power2.out',
+              onUpdate: () => {
+                setCounts([
+                  Math.floor(obj.v0),
+                  Math.floor(obj.v1),
+                  Math.floor(obj.v2),
+                  Math.floor(obj.v3),
+                ])
+              },
+            })
+          },
+        })
+      }
+
+      /* ── 5. Features grid: stagger reveal ── */
+      if (featuresRef.current) {
+        const cards = featuresRef.current.querySelectorAll('.feature-card')
+        gsap.from(cards, {
+          opacity: 0, y: 16,
+          duration: 0.45,
+          stagger: 0.07,
+          ease: 'power2.out',
+          scrollTrigger: {
+            trigger: featuresRef.current,
+            start: 'top 80%',
+          },
+        })
+      }
+
+      /* ── 6. Category chips: stagger reveal ── */
+      if (catsRef.current) {
+        const chips = catsRef.current.querySelectorAll('.cat-chip')
+        gsap.from(chips, {
+          opacity: 0, y: 16,
+          duration: 0.45,
+          stagger: { each: 0.04, from: 'start' },
+          ease: 'power2.out',
+          scrollTrigger: {
+            trigger: catsRef.current,
+            start: 'top 85%',
+          },
+        })
+      }
+
+      /* ── 7. Providers: stagger reveal ── */
+      if (providersRef.current) {
+        const cards = providersRef.current.querySelectorAll('.provider-card')
+        gsap.from(cards, {
+          opacity: 0, y: 16,
+          duration: 0.45,
+          stagger: 0.07,
+          ease: 'power2.out',
+          scrollTrigger: {
+            trigger: providersRef.current,
+            start: 'top 85%',
+          },
+        })
+      }
+
+    }, pageRef)
+
+    /* ── Mouse parallax on hero orbs ── */
+    function handleMouseMove(e: MouseEvent) {
+      const { clientX, clientY } = e
+      const cx = window.innerWidth  / 2
+      const cy = window.innerHeight / 2
+      const dx = (clientX - cx) / cx   // -1 to 1
+      const dy = (clientY - cy) / cy   // -1 to 1
+
+      if (orb1Ref.current) {
+        gsap.to(orb1Ref.current, {
+          x: dx * 28, y: dy * 18,
+          duration: 1.4, ease: 'power1.out', overwrite: 'auto',
+        })
+      }
+      if (orb2Ref.current) {
+        gsap.to(orb2Ref.current, {
+          x: -dx * 20, y: -dy * 14,
+          duration: 1.6, ease: 'power1.out', overwrite: 'auto',
+        })
+      }
+    }
+
+    window.addEventListener('mousemove', handleMouseMove)
+
+    return () => {
+      ctx.revert()
+      window.removeEventListener('mousemove', handleMouseMove)
+    }
+  }, [totalQuestions])
+
+  /* ══════════════════════════════════════════════════════════════
+     RENDER
+     ══════════════════════════════════════════════════════════════ */
   return (
-    <div>
+    <div ref={pageRef}>
 
       {/* ══ HERO ══════════════════════════════════════════════ */}
       <section style={{
-        minHeight: '90vh',
-        display: 'flex', alignItems: 'center',
+        minHeight: '92vh',
+        display: 'flex',
+        alignItems: 'center',
         padding: 'clamp(48px, 8vw, 96px) clamp(24px, 5vw, 64px)',
-        position: 'relative', overflow: 'hidden',
+        position: 'relative',
+        overflow: 'hidden',
       }}>
-        {/* Ambient glows */}
-        <div style={{ position: 'absolute', top: '5%', right: '25%', width: 560, height: 360, borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(124,92,252,0.16) 0%, transparent 65%)', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', bottom: '10%', left: '5%',  width: 400, height: 300, borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(59,130,246,0.12) 0%, transparent 65%)',  pointerEvents: 'none' }} />
 
-        <div style={{ maxWidth: 1280, margin: '0 auto', width: '100%', display: 'flex', alignItems: 'center', gap: 'clamp(32px, 6vw, 80px)' }}>
+        {/* Hero ambient orbs — moved by mouse parallax */}
+        <div
+          ref={orb1Ref}
+          style={{
+            position: 'absolute', top: '0%', right: '20%',
+            width: 600, height: 400,
+            borderRadius: '50%',
+            background: 'radial-gradient(ellipse, rgba(124,92,252,0.18) 0%, transparent 68%)',
+            pointerEvents: 'none',
+          }}
+        />
+        <div
+          ref={orb2Ref}
+          style={{
+            position: 'absolute', bottom: '5%', left: '0%',
+            width: 440, height: 320,
+            borderRadius: '50%',
+            background: 'radial-gradient(ellipse, rgba(59,130,246,0.13) 0%, transparent 68%)',
+            pointerEvents: 'none',
+          }}
+        />
 
-          {/* Text block */}
-          <div style={{ flex: '1 1 55%', minWidth: 0 }}>
+        <div style={{
+          maxWidth: 1200, margin: '0 auto', width: '100%',
+          display: 'flex', alignItems: 'center',
+          gap: 'clamp(32px, 6vw, 80px)',
+        }}>
 
-            {/* Eyebrow */}
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: 8,
-              padding: '4px 14px', borderRadius: 99,
-              border: '1px solid rgba(59,130,246,0.28)',
-              background: 'rgba(59,130,246,0.08)',
-              fontSize: 11, fontWeight: 700,
-              color: 'var(--color-accent)', letterSpacing: '0.07em',
-              marginBottom: 28,
-              animation: 'fadeUp 0.4s ease-out both',
-            }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-accent)', display: 'inline-block', animation: 'glowPulse 2s ease-in-out infinite' }} />
+          {/* ── Text column ── */}
+          <div ref={heroTextRef} style={{ flex: '1 1 55%', minWidth: 0 }}>
+
+            {/* Eyebrow pill — animated via heroTextRef stagger */}
+            <div
+              className="hero-item"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                padding: '5px 14px', borderRadius: 99,
+                border: '1px solid rgba(59,130,246,0.25)',
+                background: 'rgba(59,130,246,0.07)',
+                fontSize: 10, fontWeight: 700,
+                color: 'var(--color-accent)', letterSpacing: '0.08em',
+                marginBottom: 28, opacity: 0, // GSAP starts here
+              }}
+            >
+              <span style={{
+                width: 6, height: 6, borderRadius: '50%',
+                background: 'var(--color-accent)', display: 'inline-block',
+              }} />
               AI-Powered · 19 Model · 18 تصنيف
             </div>
 
-            {/* Headline — word-by-word stagger */}
-            <h1 style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: 'clamp(2.4rem, 5vw, 4rem)',
-              fontWeight: 800, lineHeight: 1.1,
-              marginBottom: 10,
-              display: 'flex', flexWrap: 'wrap', gap: '0 14px',
-            }}>
-              {['Interview', 'Coach'].map((word, i) => (
+            {/* Main headline — words split for GSAP reveal */}
+            <h1
+              ref={headlineRef}
+              style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: 'clamp(3rem, 6vw, 5.5rem)',
+                fontWeight: 800, lineHeight: 1.05,
+                marginBottom: 12,
+                display: 'flex', flexWrap: 'wrap',
+                gap: '0 16px',
+                perspective: '600px',
+              }}
+            >
+              {['Interview', 'Coach'].map(word => (
                 <span
                   key={word}
-                  className="gradient-text"
-                  style={{ animation: `fadeUp 0.5s ease-out ${i * 130}ms both`, display: 'inline-block' }}
+                  className="hero-word gradient-text"
+                  style={{ display: 'inline-block', opacity: 0 }} // GSAP animates from here
                 >
                   {word}
                 </span>
@@ -199,78 +397,101 @@ const HomePage: FC = () => {
             </h1>
 
             {/* Sub-headline */}
-            <h2 style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: 'clamp(1.4rem, 2.8vw, 2rem)',
-              fontWeight: 600, color: 'var(--color-text)',
-              marginBottom: 20,
-              animation: 'fadeUp 0.5s ease-out 300ms both',
-            }}>
+            <h2
+              className="hero-item"
+              style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: 'clamp(1.3rem, 2.5vw, 1.85rem)',
+                fontWeight: 600, color: 'var(--color-text)',
+                marginBottom: 20, opacity: 0, // GSAP
+              }}
+            >
               للـ Frontend Developers
             </h2>
 
-            {/* Body */}
-            <p style={{
-              fontSize: 15, lineHeight: 1.85,
-              color: 'var(--color-text-muted)',
-              maxWidth: 500, marginBottom: 40,
-              animation: 'fadeUp 0.5s ease-out 420ms both',
-            }}>
+            {/* Body copy */}
+            <p
+              className="hero-item"
+              style={{
+                fontSize: 15, lineHeight: 1.9,
+                color: 'var(--color-text-muted)',
+                maxWidth: 500, marginBottom: 40,
+                opacity: 0, // GSAP
+              }}
+            >
               ولّد أسئلة مقابلة لا نهائية بالعربي مع إجابات تفصيلية وكود.
               19 AI model، 18 تصنيف تقني، 3 مستويات.
             </p>
 
-            {/* CTAs */}
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', animation: 'fadeUp 0.5s ease-out 520ms both' }}>
+            {/* CTA buttons */}
+            <div
+              className="hero-item"
+              style={{ display: 'flex', gap: 12, flexWrap: 'wrap', opacity: 0 }}
+            >
+              {/* Primary CTA */}
               <button
-                style={accentBtn}
                 onClick={() => navigate('/generate')}
+                style={{
+                  padding: '13px 30px', borderRadius: 12, border: 'none',
+                  background: 'linear-gradient(135deg, var(--color-primary), var(--color-accent))',
+                  color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer',
+                  boxShadow: 'var(--shadow-glow)',
+                  transition: 'all var(--transition-fast)', fontFamily: 'inherit',
+                }}
                 onMouseEnter={e => {
-                  const el = e.currentTarget
-                  el.style.background = 'var(--color-accent-hover)'
-                  el.style.transform  = 'translateY(-2px)'
-                  el.style.boxShadow  = '0 0 40px rgba(59,130,246,0.40), 0 0 12px rgba(59,130,246,0.22)'
+                  e.currentTarget.style.transform  = 'translateY(-2px)'
+                  e.currentTarget.style.boxShadow  = '0 0 44px rgba(59,130,246,0.42), 0 0 14px rgba(59,130,246,0.24)'
                 }}
                 onMouseLeave={e => {
-                  const el = e.currentTarget
-                  el.style.background = 'var(--color-accent)'
-                  el.style.transform  = 'translateY(0)'
-                  el.style.boxShadow  = 'var(--shadow-glow)'
+                  e.currentTarget.style.transform  = 'translateY(0)'
+                  e.currentTarget.style.boxShadow  = 'var(--shadow-glow)'
                 }}
               >
                 ابدأ التوليد الآن →
               </button>
 
+              {/* Secondary CTA */}
               <button
-                style={ghostBtn}
                 onClick={() => navigate('/github')}
+                style={{
+                  padding: '13px 30px', borderRadius: 12,
+                  background: 'transparent', color: 'var(--color-text)',
+                  fontWeight: 600, fontSize: 14, cursor: 'pointer',
+                  border: '1px solid rgba(255,255,255,0.13)',
+                  transition: 'all var(--transition-fast)', fontFamily: 'inherit',
+                }}
                 onMouseEnter={e => {
-                  const el = e.currentTarget
-                  el.style.borderColor = 'rgba(59,130,246,0.50)'
-                  el.style.background  = 'rgba(59,130,246,0.08)'
-                  el.style.transform   = 'translateY(-2px)'
+                  e.currentTarget.style.borderColor = 'rgba(59,130,246,0.45)'
+                  e.currentTarget.style.background  = 'rgba(59,130,246,0.07)'
+                  e.currentTarget.style.transform   = 'translateY(-2px)'
                 }}
                 onMouseLeave={e => {
-                  const el = e.currentTarget
-                  el.style.borderColor = 'rgba(255,255,255,0.14)'
-                  el.style.background  = 'transparent'
-                  el.style.transform   = 'translateY(0)'
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.13)'
+                  e.currentTarget.style.background  = 'transparent'
+                  e.currentTarget.style.transform   = 'translateY(0)'
                 }}
               >
                 GitHub Search
               </button>
 
+              {/* API key nudge — shown only when no keys configured */}
               {!hasAnyKey && (
                 <button
-                  style={{ ...ghostBtn, borderColor: 'rgba(255,255,255,0.08)', color: 'var(--color-text-muted)', fontSize: 13 }}
                   onClick={() => navigate('/settings')}
+                  style={{
+                    padding: '13px 26px', borderRadius: 12,
+                    background: 'transparent', color: 'var(--color-text-muted)',
+                    fontWeight: 600, fontSize: 13, cursor: 'pointer',
+                    border: '1px solid rgba(255,255,255,0.07)',
+                    transition: 'all var(--transition-fast)', fontFamily: 'inherit',
+                  }}
                   onMouseEnter={e => {
                     e.currentTarget.style.color       = 'var(--color-text)'
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.22)'
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.20)'
                   }}
                   onMouseLeave={e => {
                     e.currentTarget.style.color       = 'var(--color-text-muted)'
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'
                   }}
                 >
                   أضف API Key مجاناً
@@ -278,19 +499,25 @@ const HomePage: FC = () => {
               )}
             </div>
 
-            {/* No-key notice */}
+            {/* No-key warning notice */}
             {!hasAnyKey && (
-              <div style={{
-                marginTop: 20, display: 'inline-flex', alignItems: 'center', gap: 8,
-                padding: '8px 16px', borderRadius: 10,
-                background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.20)',
-                fontSize: 12, color: 'var(--color-warning)',
-                animation: 'fadeIn 0.4s ease-out 640ms both',
-              }}>
+              <div
+                className="hero-item"
+                style={{
+                  marginTop: 20, display: 'inline-flex', alignItems: 'center', gap: 8,
+                  padding: '8px 16px', borderRadius: 10,
+                  background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.20)',
+                  fontSize: 12, color: 'var(--color-warning, #f59e0b)', opacity: 0,
+                }}
+              >
                 محتاج API Key واحد على الأقل —
                 <button
                   onClick={() => navigate('/settings')}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-accent)', textDecoration: 'underline', fontSize: 12, fontFamily: 'inherit' }}
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    color: 'var(--color-accent)', textDecoration: 'underline',
+                    fontSize: 12, fontFamily: 'inherit',
+                  }}
                 >
                   روح الإعدادات
                 </button>
@@ -298,10 +525,18 @@ const HomePage: FC = () => {
             )}
           </div>
 
-          {/* 3D Mock Card */}
-          <div style={{ flex: '0 0 42%', display: 'flex', justifyContent: 'center', alignItems: 'center', animation: 'fadeUp 0.6s ease-out 200ms both' }}>
+          {/* ── 3D Mock Card column ── */}
+          <div
+            ref={heroCardRef}
+            style={{
+              flex: '0 0 42%',
+              display: 'flex', justifyContent: 'center', alignItems: 'center',
+              opacity: 0, // GSAP animates in
+            }}
+          >
             <MockCard />
           </div>
+
         </div>
       </section>
 
@@ -309,20 +544,20 @@ const HomePage: FC = () => {
       <div
         ref={statsRef}
         style={{
-          background: 'rgba(255,255,255,0.025)',
-          borderTop: '1px solid rgba(255,255,255,0.06)',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
-          padding: 'clamp(32px, 5vw, 48px) clamp(24px, 5vw, 64px)',
+          background: 'rgba(255,255,255,0.022)',
+          borderTop: '1px solid rgba(255,255,255,0.055)',
+          borderBottom: '1px solid rgba(255,255,255,0.055)',
+          padding: 'clamp(28px, 5vw, 44px) clamp(24px, 5vw, 64px)',
         }}
       >
-        <div style={{ maxWidth: 1280, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24, textAlign: 'center' }}>
-          {[
-            { value: c1, label: 'AI Model'     },
-            { value: c2, label: 'تصنيف تقني'   },
-            { value: c3, label: 'مستوى'         },
-            { value: c4, label: 'سؤال محفوظ'   },
-          ].map(({ value, label }) => (
+        <div style={{
+          maxWidth: 1200, margin: '0 auto',
+          display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: 24, textAlign: 'center',
+        }}>
+          {STATS_ITEMS.map(({ label }, i) => (
             <div key={label}>
+              {/* Animated number */}
               <div style={{
                 fontFamily: 'var(--font-display)',
                 fontSize: 'clamp(1.8rem, 3vw, 2.75rem)',
@@ -330,54 +565,70 @@ const HomePage: FC = () => {
                 lineHeight: 1, marginBottom: 8,
                 fontVariantNumeric: 'tabular-nums',
               }}>
-                {value}
+                {counts[i]}
               </div>
-              <div style={{ fontSize: 13, color: 'var(--color-text-muted)', fontWeight: 500 }}>{label}</div>
+              <div style={{ fontSize: 12, color: 'var(--color-text-muted)', fontWeight: 500 }}>
+                {label}
+              </div>
             </div>
           ))}
         </div>
       </div>
 
       {/* ══ FEATURES ══════════════════════════════════════════ */}
-      <section ref={featuresRef} style={{ padding: 'clamp(56px, 8vw, 96px) clamp(24px, 5vw, 64px)' }}>
-        <div style={{ maxWidth: 1280, margin: '0 auto' }}>
+      <section style={{ padding: 'clamp(56px, 8vw, 96px) clamp(24px, 5vw, 64px)' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
 
-          {/* Header */}
+          {/* Section header */}
           <div style={{ textAlign: 'center', marginBottom: 52 }}>
-            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--color-accent)', marginBottom: 12, textTransform: 'uppercase' }}>
+            <p style={{
+              fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
+              color: 'var(--color-accent)', marginBottom: 12, textTransform: 'uppercase',
+            }}>
               المميزات
             </p>
-            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(1.4rem, 3vw, 2.1rem)', fontWeight: 700, color: 'var(--color-text)', lineHeight: 1.2 }}>
+            <h2 style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: 'clamp(1.4rem, 3vw, 2.1rem)',
+              fontWeight: 700, color: 'var(--color-text)', lineHeight: 1.2,
+            }}>
               كل اللي تحتاجه للتحضير
             </h2>
           </div>
 
-          {/* Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 20 }}>
-            {FEATURES.map((f, i) => (
+          {/* Feature cards grid — each has class feature-card for GSAP targeting */}
+          <div
+            ref={featuresRef}
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+              gap: 20,
+            }}
+          >
+            {FEATURES.map((f) => (
               <div
                 key={f.title}
-                className="glass-card lift-3d"
-                style={{
-                  padding: 28,
-                  opacity: featuresInView ? 1 : 0,
-                  transform: featuresInView ? 'translateY(0)' : 'translateY(24px)',
-                  transition: `opacity 0.5s ease-out ${i * 100}ms, transform 0.5s ease-out ${i * 100}ms`,
-                }}
+                className="feature-card glass-card gradient-border lift-3d"
+                style={{ padding: 28, opacity: 0 }} // GSAP animates in
               >
+                {/* Icon container */}
                 <div style={{
-                  width: 46, height: 46, borderRadius: 12,
-                  background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid rgba(255,255,255,0.08)',
+                  width: 48, height: 48, borderRadius: 12,
+                  background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(255,255,255,0.07)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 20, marginBottom: 20,
+                  boxShadow: `0 4px 16px ${f.accent}22`,
                 }}>
                   {f.icon}
                 </div>
-                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 700, color: 'var(--color-text)', marginBottom: 10 }}>
+                <h3 style={{
+                  fontFamily: 'var(--font-display)', fontSize: 15,
+                  fontWeight: 700, color: 'var(--color-text)', marginBottom: 10,
+                }}>
                   {f.title}
                 </h3>
-                <p style={{ fontSize: 13, lineHeight: 1.75, color: 'var(--color-text-muted)' }}>
+                <p style={{ fontSize: 13, lineHeight: 1.8, color: 'var(--color-text-muted)' }}>
                   {f.desc}
                 </p>
               </div>
@@ -386,55 +637,87 @@ const HomePage: FC = () => {
         </div>
       </section>
 
-      {/* ── Divider ── */}
-      <div style={{ height: 1, background: 'linear-gradient(to left, transparent, rgba(255,255,255,0.07), transparent)', margin: '0 clamp(24px, 5vw, 64px)' }} />
+      {/* ── Gradient divider ── */}
+      <div style={{
+        height: 1,
+        background: 'linear-gradient(to left, transparent, rgba(255,255,255,0.06), transparent)',
+        margin: '0 clamp(24px, 5vw, 64px)',
+      }} />
 
       {/* ══ CATEGORIES ════════════════════════════════════════ */}
       <section style={{ padding: 'clamp(48px, 7vw, 80px) clamp(24px, 5vw, 64px)' }}>
-        <div style={{ maxWidth: 1280, margin: '0 auto' }}>
-          <div style={{ marginBottom: 24 }}>
-            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 700, color: 'var(--color-text)', marginBottom: 4 }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+
+          {/* Section header */}
+          <div style={{ marginBottom: 28 }}>
+            <h2 style={{
+              fontFamily: 'var(--font-display)', fontSize: 18,
+              fontWeight: 700, color: 'var(--color-text)', marginBottom: 4,
+            }}>
               التصنيفات المتاحة
             </h2>
-            <p style={{ fontSize: 13, color: 'var(--color-text-subtle)' }}>{CATEGORIES.length} تصنيف تقني</p>
+            <p style={{ fontSize: 12, color: 'var(--color-text-subtle)' }}>
+              {CATEGORIES.length} تصنيف تقني
+            </p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(148px, 1fr))', gap: 8 }}>
+          {/* Category chips — class cat-chip for GSAP wave stagger */}
+          <div
+            ref={catsRef}
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(148px, 1fr))',
+              gap: 8,
+            }}
+          >
             {CATEGORIES.map(cat => {
+              /* Count questions saved for this category across all levels */
               const count = LEVELS.reduce((s, l) => s + (questionSets[`${cat.id}-${l.id}`]?.length || 0), 0)
               const vars  = dynColor(cat.color)
               return (
                 <button
                   key={cat.id}
+                  className="cat-chip"
                   aria-label={`${cat.label}${count > 0 ? ` — ${count} سؤال` : ''}`}
                   onClick={() => navigate(`/generate?cat=${cat.id}`)}
                   style={{
                     ...vars,
                     display: 'flex', alignItems: 'center', gap: 8,
-                    padding: '10px 12px', borderRadius: 12,
-                    background: count > 0 ? 'var(--c-dim)' : 'rgba(255,255,255,0.03)',
-                    border: `1px solid ${count > 0 ? 'var(--c-dim)' : 'rgba(255,255,255,0.07)'}`,
+                    padding: '10px 12px', borderRadius: 11,
+                    background: count > 0 ? 'var(--c-dim)' : 'rgba(255,255,255,0.025)',
+                    border: `1px solid ${count > 0 ? 'var(--c-dim)' : 'rgba(255,255,255,0.065)'}`,
                     cursor: 'pointer', textAlign: 'right',
                     transition: 'all var(--transition-fast)',
                     fontFamily: 'inherit',
+                    opacity: 0, // GSAP starts invisible
                   }}
                   onMouseEnter={e => {
                     e.currentTarget.style.borderColor = 'var(--c)'
                     e.currentTarget.style.background  = 'var(--c-dim)'
                     e.currentTarget.style.transform   = 'translateY(-2px)'
+                    e.currentTarget.style.boxShadow   = '0 4px 16px var(--c-glow, rgba(59,130,246,0.18))'
                   }}
                   onMouseLeave={e => {
-                    e.currentTarget.style.borderColor = count > 0 ? 'var(--c-dim)' : 'rgba(255,255,255,0.07)'
-                    e.currentTarget.style.background  = count > 0 ? 'var(--c-dim)' : 'rgba(255,255,255,0.03)'
+                    e.currentTarget.style.borderColor = count > 0 ? 'var(--c-dim)' : 'rgba(255,255,255,0.065)'
+                    e.currentTarget.style.background  = count > 0 ? 'var(--c-dim)' : 'rgba(255,255,255,0.025)'
                     e.currentTarget.style.transform   = 'translateY(0)'
+                    e.currentTarget.style.boxShadow   = 'none'
                   }}
                 >
-                  <span style={{ fontSize: 16, flexShrink: 0 }} aria-hidden="true">{cat.icon}</span>
-                  <span style={{ fontSize: 12, fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--c)' }}>
+                  <span style={{ fontSize: 15, flexShrink: 0 }} aria-hidden="true">{cat.icon}</span>
+                  <span style={{
+                    fontSize: 11, fontWeight: 600, flex: 1,
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    color: 'var(--c)',
+                  }}>
                     {cat.label}
                   </span>
                   {count > 0 && (
-                    <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: 'var(--c-dim)', color: 'var(--c)', flexShrink: 0 }}>
+                    <span style={{
+                      fontSize: 9, fontWeight: 700, padding: '1px 5px',
+                      borderRadius: 4, background: 'var(--c-dim)',
+                      color: 'var(--c)', flexShrink: 0,
+                    }}>
                       {count}
                     </span>
                   )}
@@ -445,38 +728,85 @@ const HomePage: FC = () => {
         </div>
       </section>
 
-      {/* ── Divider ── */}
-      <div style={{ height: 1, background: 'linear-gradient(to left, transparent, rgba(255,255,255,0.07), transparent)', margin: '0 clamp(24px, 5vw, 64px)' }} />
+      {/* ── Gradient divider ── */}
+      <div style={{
+        height: 1,
+        background: 'linear-gradient(to left, transparent, rgba(255,255,255,0.06), transparent)',
+        margin: '0 clamp(24px, 5vw, 64px)',
+      }} />
 
       {/* ══ FREE PROVIDERS ════════════════════════════════════ */}
       <section style={{ padding: 'clamp(48px, 7vw, 80px) clamp(24px, 5vw, 64px) clamp(64px, 10vw, 100px)' }}>
-        <div style={{ maxWidth: 1280, margin: '0 auto' }}>
-          <div style={{ marginBottom: 24 }}>
-            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 700, color: 'var(--color-text)', marginBottom: 4 }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+
+          {/* Section header */}
+          <div style={{ marginBottom: 28 }}>
+            <h2 style={{
+              fontFamily: 'var(--font-display)', fontSize: 18,
+              fontWeight: 700, color: 'var(--color-text)', marginBottom: 4,
+            }}>
               Providers المجانية
             </h2>
-            <p style={{ fontSize: 13, color: 'var(--color-text-subtle)' }}>API key مجاني تماماً — بدون credit card</p>
+            <p style={{ fontSize: 12, color: 'var(--color-text-subtle)' }}>
+              API key مجاني تماماً — بدون credit card
+            </p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 10 }}>
-            {FREE_PROVIDERS.map(m => (
+          {/* Provider cards grid — class provider-card for GSAP side reveals */}
+          <div
+            ref={providersRef}
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+              gap: 10,
+            }}
+          >
+            {FREE_PROVIDERS.map((m) => (
               <div
                 key={m.name}
-                className="glass-card"
-                style={{ ...dynColor(m.color), display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px' }}
+                className="provider-card glass-card"
+                style={{
+                  ...dynColor(m.color),
+                  display: 'flex', alignItems: 'center',
+                  gap: 14, padding: '14px 16px',
+                  opacity: 0, // GSAP reveals
+                }}
               >
-                <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, background: 'var(--c-dim)', color: 'var(--c)' }} aria-hidden="true">
+                {/* Provider initial avatar */}
+                <div style={{
+                  width: 38, height: 38, borderRadius: 10, flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 13, fontWeight: 800,
+                  background: 'var(--c-dim)', color: 'var(--c)',
+                }} aria-hidden="true">
                   {m.name[0]}
                 </div>
+
+                {/* Provider name + description */}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</div>
-                  <div style={{ fontSize: 11, color: 'var(--color-text-subtle)' }}>{m.desc}</div>
+                  <div style={{
+                    fontSize: 13, fontWeight: 700, color: 'var(--color-text)',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
+                    {m.name}
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--color-text-subtle)' }}>
+                    {m.desc}
+                  </div>
                 </div>
+
+                {/* Get key link */}
                 <a
                   href={m.link} target="_blank" rel="noreferrer"
                   aria-label={`احصل على API Key من ${m.name}`}
-                  style={{ fontSize: 10, padding: '5px 12px', borderRadius: 8, fontWeight: 700, flexShrink: 0, background: 'var(--c-dim)', color: 'var(--c)', textDecoration: 'none', transition: 'opacity var(--transition-fast)' }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.opacity = '0.75' }}
+                  style={{
+                    fontSize: 10, padding: '5px 12px', borderRadius: 8,
+                    fontWeight: 700, flexShrink: 0,
+                    background: 'var(--c-dim)', color: 'var(--c)',
+                    textDecoration: 'none',
+                    transition: 'opacity var(--transition-fast)',
+                  }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.opacity = '0.70' }}
                   onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.opacity = '1' }}
                 >
                   احصل على Key ↗
