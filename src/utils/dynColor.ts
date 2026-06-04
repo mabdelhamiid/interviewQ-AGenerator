@@ -6,8 +6,8 @@
  */
 export function dynColor(hex: string): React.CSSProperties {
   return {
-    '--c':     hex,
-    '--c-dim': hex + '22',   // ~13% opacity
-    '--c-glow': hex + '40',  // ~25% opacity
+    '--c':      hex,
+    '--c-dim':  `color-mix(in srgb, ${hex} 13%, transparent)`,
+    '--c-glow': `color-mix(in srgb, ${hex} 25%, transparent)`,
   } as React.CSSProperties
 }

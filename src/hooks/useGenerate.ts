@@ -23,9 +23,7 @@ export function useGenerate({ storeKey, currentCat, currentLevel }: Params) {
   async function generate(count: number) {
     const apiKey = currentModel.getKey(keys)
     if (!apiKey) {
-      const msg = `محتاج API Key للـ ${currentModel.label} — روح الإعدادات`
-      setError(msg)
-      toast(msg, 'warning')
+      setError(`محتاج API Key للـ ${currentModel.label} — روح الإعدادات`)
       return
     }
 
@@ -62,9 +60,7 @@ export function useGenerate({ storeKey, currentCat, currentLevel }: Params) {
       addQuestions(storeKey, newQs)
       toast(`تم توليد ${newQs.length} سؤال بنجاح`, 'success')
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'حصل خطأ غير متوقع'
-      setError(msg)
-      toast(msg, 'error')
+      setError(e instanceof Error ? e.message : 'حصل خطأ غير متوقع')
     } finally {
       clearInterval(iv)
       setLoading(false)

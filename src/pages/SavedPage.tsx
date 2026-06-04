@@ -31,6 +31,7 @@ const SavedPage: FC = () => {
   const [openQ,       setOpenQ]       = useState<string | null>(null)   // expanded question key
   const [confirmKey,  setConfirmKey]  = useState<string | null>(null)   // section pending delete confirm
   const [confirmAll,  setConfirmAll]  = useState(false)                  // all-delete confirm state
+  const [copiedIdx,   setCopiedIdx]   = useState<string | null>(null)   // copy feedback per question
 
   /* ── Derive visible sections (non-empty sets) ── */
   const sections = Object.entries(questionSets).filter(([, qs]) => qs.length > 0)
@@ -103,8 +104,11 @@ const SavedPage: FC = () => {
               <button
                 onClick={handleClearAll}
                 style={{
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  fontSize: 12, fontWeight: 700, color: 'var(--color-error)', fontFamily: 'inherit',
+                  fontSize: 12, fontWeight: 700, color: '#f43f5e',
+                  background: 'rgba(244,63,94,0.10)',
+                  border: '1px solid rgba(244,63,94,0.30)',
+                  borderRadius: 6, padding: '2px 10px',
+                  cursor: 'pointer', fontFamily: 'inherit',
                 }}
               >
                 نعم
@@ -112,8 +116,8 @@ const SavedPage: FC = () => {
               <button
                 onClick={() => setConfirmAll(false)}
                 style={{
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  fontSize: 12, color: 'var(--color-text-muted)', fontFamily: 'inherit',
+                  fontSize: 12, color: 'var(--color-text-subtle)',
+                  background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                 }}
               >
                 لا
@@ -129,6 +133,7 @@ const SavedPage: FC = () => {
           icon="📚"
           title="مفيش أسئلة محفوظة"
           desc="ولّد أسئلة من صفحة التوليد وبيتحفظوا تلقائياً"
+          action={<Button onClick={() => navigate('/generate')}>ولّد أسئلة الآن</Button>}
         />
       )}
 
@@ -183,27 +188,9 @@ const SavedPage: FC = () => {
               {/* Delete section — button or inline confirm */}
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 {confirmKey !== key ? (
-                  <button
-                    onClick={() => setConfirmKey(key)}
-                    style={{
-                      fontSize: 11, padding: '4px 12px', borderRadius: 8,
-                      background: 'transparent',
-                      border: '1px solid rgba(244,63,94,0.20)',
-                      color: 'rgba(244,63,94,0.60)',
-                      cursor: 'pointer', fontFamily: 'inherit',
-                      transition: 'all var(--transition-fast)',
-                    }}
-                    onMouseEnter={e => {
-                      e.currentTarget.style.borderColor = 'rgba(244,63,94,0.45)'
-                      e.currentTarget.style.color       = '#f43f5e'
-                    }}
-                    onMouseLeave={e => {
-                      e.currentTarget.style.borderColor = 'rgba(244,63,94,0.20)'
-                      e.currentTarget.style.color       = 'rgba(244,63,94,0.60)'
-                    }}
-                  >
+                  <Button size="sm" variant="danger" onClick={() => setConfirmKey(key)}>
                     مسح القسم
-                  </button>
+                  </Button>
                 ) : (
                   <div style={{
                     display: 'flex', alignItems: 'center', gap: 6,
@@ -215,8 +202,11 @@ const SavedPage: FC = () => {
                     <button
                       onClick={() => handleClearSection(key)}
                       style={{
-                        fontSize: 11, fontWeight: 700, color: 'var(--color-error)',
-                        background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                        fontSize: 11, fontWeight: 700, color: '#f43f5e',
+                        background: 'rgba(244,63,94,0.10)',
+                        border: '1px solid rgba(244,63,94,0.30)',
+                        borderRadius: 6, padding: '2px 10px',
+                        cursor: 'pointer', fontFamily: 'inherit',
                       }}
                     >
                       نعم
@@ -224,7 +214,7 @@ const SavedPage: FC = () => {
                     <button
                       onClick={() => setConfirmKey(null)}
                       style={{
-                        fontSize: 11, color: 'var(--color-text-muted)',
+                        fontSize: 11, color: 'var(--color-text-subtle)',
                         background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                       }}
                     >
@@ -312,21 +302,24 @@ const SavedPage: FC = () => {
                         }}>
                           {q.modelIcon} {q.modelLabel?.split(' ')[0]}
                         </span>
-                        {/* Copy answer button */}
+                        {/* Copy answer button — local feedback */}
                         <button
-                          onClick={() => navigator.clipboard.writeText(q.a).then(() => toast('تم نسخ الإجابة', 'success'))}
+                          onClick={() => {
+                            navigator.clipboard.writeText(q.a).then(() => {
+                              toast('تم نسخ الإجابة', 'success')
+                              setCopiedIdx(qKey)
+                              setTimeout(() => setCopiedIdx(null), 1500)
+                            })
+                          }}
                           style={{
                             fontSize: 10, padding: '3px 10px', borderRadius: 7,
-                            background: 'rgba(255,255,255,0.04)',
-                            border: '1px solid rgba(255,255,255,0.08)',
-                            color: 'var(--color-text-subtle)', cursor: 'pointer',
-                            fontFamily: 'inherit',
-                            transition: 'all var(--transition-fast)',
+                            background: copiedIdx === qKey ? 'rgba(16,185,129,0.12)' : 'rgba(255,255,255,0.04)',
+                            border: `1px solid ${copiedIdx === qKey ? 'rgba(16,185,129,0.35)' : 'rgba(255,255,255,0.08)'}`,
+                            color: copiedIdx === qKey ? 'var(--color-success)' : 'var(--color-text-subtle)',
+                            cursor: 'pointer', fontFamily: 'inherit', transition: 'all 150ms',
                           }}
-                          onMouseEnter={e => { e.currentTarget.style.color = 'var(--color-text)' }}
-                          onMouseLeave={e => { e.currentTarget.style.color = 'var(--color-text-subtle)' }}
                         >
-                          نسخ
+                          {copiedIdx === qKey ? '✓ تم' : 'نسخ'}
                         </button>
                       </div>
 

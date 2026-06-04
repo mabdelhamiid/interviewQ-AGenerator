@@ -22,6 +22,8 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useAppContext } from '../context/AppContext'
 import { CATEGORIES, LEVELS } from '../constants'
 import { dynColor } from '../utils/dynColor'
+import { prefersReducedMotion } from '../utils/motion'
+import Button from '../components/ui/Button'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -159,19 +161,31 @@ const HomePage: FC = () => {
 
   /* ── GSAP animations ── */
   useEffect(() => {
+    /* Immediately reveal all animated elements for reduced-motion users */
+    if (prefersReducedMotion()) {
+      document.querySelectorAll('.hero-word, .hero-item').forEach(el => {
+        (el as HTMLElement).style.opacity = '1'
+        ;(el as HTMLElement).style.transform = 'none'
+      })
+      if (heroCardRef.current) { heroCardRef.current.style.opacity = '1' }
+      document.querySelectorAll('.feature-card, .cat-chip, .provider-card').forEach(el => {
+        (el as HTMLElement).style.opacity = '1'
+        ;(el as HTMLElement).style.transform = 'none'
+      })
+      setCounts([19, 18, 3, totalQuestions])
+      return
+    }
+
     /* Wrap in gsap.context for clean scope and unmount cleanup */
     const ctx = gsap.context(() => {
 
       /* ── 1. Hero headline reveal ── */
       if (headlineRef.current) {
         const words = headlineRef.current.querySelectorAll('.hero-word')
-        gsap.from(words, {
-          opacity: 0, y: 16,
-          duration: 0.45,
-          stagger: 0.07,
-          ease: 'power2.out',
-          delay: 0.1,
-        })
+        gsap.fromTo(words,
+          { opacity: 0, y: 16 },
+          { opacity: 1, y: 0, duration: 0.45, stagger: 0.07, ease: 'power2.out', delay: 0.1 },
+        )
       }
 
       /* ── 2. Hero body text + CTA fade up ── */
@@ -192,12 +206,10 @@ const HomePage: FC = () => {
 
       /* ── 3. Hero card: fade in ── */
       if (heroCardRef.current) {
-        gsap.from(heroCardRef.current, {
-          opacity: 0, y: 16,
-          duration: 0.45,
-          ease: 'power2.out',
-          delay: 0.3,
-        })
+        gsap.fromTo(heroCardRef.current,
+          { opacity: 0, y: 16 },
+          { opacity: 1, y: 0, duration: 0.45, ease: 'power2.out', delay: 0.3 },
+        )
       }
 
       /* ── 4. Stats counter animation ── */
@@ -231,70 +243,84 @@ const HomePage: FC = () => {
       /* ── 5. Features grid: stagger reveal ── */
       if (featuresRef.current) {
         const cards = featuresRef.current.querySelectorAll('.feature-card')
-        gsap.from(cards, {
-          opacity: 0, y: 16,
-          duration: 0.45,
-          stagger: 0.07,
-          ease: 'power2.out',
-          scrollTrigger: {
-            trigger: featuresRef.current,
-            start: 'top 80%',
+        gsap.fromTo(cards,
+          { opacity: 0, y: 16 },
+          {
+            opacity: 1, y: 0,
+            duration: 0.45,
+            stagger: 0.07,
+            ease: 'power2.out',
+            scrollTrigger: {
+              trigger: featuresRef.current,
+              start: 'top 80%',
+            },
           },
-        })
+        )
       }
 
       /* ── 6. Category chips: stagger reveal ── */
       if (catsRef.current) {
         const chips = catsRef.current.querySelectorAll('.cat-chip')
-        gsap.from(chips, {
-          opacity: 0, y: 16,
-          duration: 0.45,
-          stagger: { each: 0.04, from: 'start' },
-          ease: 'power2.out',
-          scrollTrigger: {
-            trigger: catsRef.current,
-            start: 'top 85%',
+        gsap.fromTo(chips,
+          { opacity: 0, y: 16 },
+          {
+            opacity: 1, y: 0,
+            duration: 0.45,
+            stagger: { each: 0.04, from: 'start' },
+            ease: 'power2.out',
+            scrollTrigger: {
+              trigger: catsRef.current,
+              start: 'top 85%',
+            },
           },
-        })
+        )
       }
 
       /* ── 7. Providers: stagger reveal ── */
       if (providersRef.current) {
         const cards = providersRef.current.querySelectorAll('.provider-card')
-        gsap.from(cards, {
-          opacity: 0, y: 16,
-          duration: 0.45,
-          stagger: 0.07,
-          ease: 'power2.out',
-          scrollTrigger: {
-            trigger: providersRef.current,
-            start: 'top 85%',
+        gsap.fromTo(cards,
+          { opacity: 0, y: 16 },
+          {
+            opacity: 1, y: 0,
+            duration: 0.45,
+            stagger: 0.07,
+            ease: 'power2.out',
+            scrollTrigger: {
+              trigger: providersRef.current,
+              start: 'top 85%',
+            },
           },
-        })
+        )
       }
 
     }, pageRef)
 
-    /* ── Mouse parallax on hero orbs ── */
+    /* ── Mouse parallax on hero orbs (RAF-throttled) ── */
+    let rafId: number | null = null
     function handleMouseMove(e: MouseEvent) {
-      const { clientX, clientY } = e
-      const cx = window.innerWidth  / 2
-      const cy = window.innerHeight / 2
-      const dx = (clientX - cx) / cx   // -1 to 1
-      const dy = (clientY - cy) / cy   // -1 to 1
+      if (rafId) return
+      rafId = requestAnimationFrame(() => {
+        rafId = null
+        const { clientX, clientY } = e
+        const cx = window.innerWidth  / 2
+        const cy = window.innerHeight / 2
+        const dx = (clientX - cx) / cx   // -1 to 1
+        const dy = (clientY - cy) / cy   // -1 to 1
 
-      if (orb1Ref.current) {
-        gsap.to(orb1Ref.current, {
-          x: dx * 28, y: dy * 18,
-          duration: 1.4, ease: 'power1.out', overwrite: 'auto',
-        })
-      }
-      if (orb2Ref.current) {
-        gsap.to(orb2Ref.current, {
-          x: -dx * 20, y: -dy * 14,
-          duration: 1.6, ease: 'power1.out', overwrite: 'auto',
-        })
-      }
+        if (orb1Ref.current) {
+          gsap.to(orb1Ref.current, {
+            x: dx * 28, y: dy * 18,
+            duration: 1.4, ease: 'power1.out', overwrite: 'auto',
+          })
+        }
+        if (orb2Ref.current) {
+          gsap.to(orb2Ref.current, {
+            x: -dx * 20, y: -dy * 14,
+            duration: 1.6, ease: 'power1.out', overwrite: 'auto',
+          })
+        }
+      })
     }
 
     window.addEventListener('mousemove', handleMouseMove)
@@ -302,6 +328,7 @@ const HomePage: FC = () => {
     return () => {
       ctx.revert()
       window.removeEventListener('mousemove', handleMouseMove)
+      if (rafId) cancelAnimationFrame(rafId)
     }
   }, [totalQuestions])
 
@@ -429,73 +456,20 @@ const HomePage: FC = () => {
               style={{ display: 'flex', gap: 12, flexWrap: 'wrap', opacity: 0 }}
             >
               {/* Primary CTA */}
-              <button
-                onClick={() => navigate('/generate')}
-                style={{
-                  padding: '13px 30px', borderRadius: 12, border: 'none',
-                  background: 'linear-gradient(135deg, var(--color-primary), var(--color-accent))',
-                  color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer',
-                  boxShadow: 'var(--shadow-glow)',
-                  transition: 'all var(--transition-fast)', fontFamily: 'inherit',
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.transform  = 'translateY(-2px)'
-                  e.currentTarget.style.boxShadow  = '0 0 44px rgba(59,130,246,0.42), 0 0 14px rgba(59,130,246,0.24)'
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.transform  = 'translateY(0)'
-                  e.currentTarget.style.boxShadow  = 'var(--shadow-glow)'
-                }}
-              >
+              <Button size="lg" onClick={() => navigate('/generate')}>
                 ابدأ التوليد الآن →
-              </button>
+              </Button>
 
               {/* Secondary CTA */}
-              <button
-                onClick={() => navigate('/github')}
-                style={{
-                  padding: '13px 30px', borderRadius: 12,
-                  background: 'transparent', color: 'var(--color-text)',
-                  fontWeight: 600, fontSize: 14, cursor: 'pointer',
-                  border: '1px solid rgba(255,255,255,0.13)',
-                  transition: 'all var(--transition-fast)', fontFamily: 'inherit',
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.borderColor = 'rgba(59,130,246,0.45)'
-                  e.currentTarget.style.background  = 'rgba(59,130,246,0.07)'
-                  e.currentTarget.style.transform   = 'translateY(-2px)'
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.13)'
-                  e.currentTarget.style.background  = 'transparent'
-                  e.currentTarget.style.transform   = 'translateY(0)'
-                }}
-              >
+              <Button size="lg" variant="secondary" onClick={() => navigate('/github')}>
                 GitHub Search
-              </button>
+              </Button>
 
               {/* API key nudge — shown only when no keys configured */}
               {!hasAnyKey && (
-                <button
-                  onClick={() => navigate('/settings')}
-                  style={{
-                    padding: '13px 26px', borderRadius: 12,
-                    background: 'transparent', color: 'var(--color-text-muted)',
-                    fontWeight: 600, fontSize: 13, cursor: 'pointer',
-                    border: '1px solid rgba(255,255,255,0.07)',
-                    transition: 'all var(--transition-fast)', fontFamily: 'inherit',
-                  }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.color       = 'var(--color-text)'
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.20)'
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.color       = 'var(--color-text-muted)'
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'
-                  }}
-                >
+                <Button size="lg" variant="ghost" onClick={() => navigate('/settings')}>
                   أضف API Key مجاناً
-                </button>
+                </Button>
               )}
             </div>
 
@@ -567,7 +541,7 @@ const HomePage: FC = () => {
               }}>
                 {counts[i]}
               </div>
-              <div style={{ fontSize: 12, color: 'var(--color-text-muted)', fontWeight: 500 }}>
+              <div style={{ fontSize: 14, color: 'var(--color-text-muted)', fontWeight: 500 }}>
                 {label}
               </div>
             </div>
@@ -651,7 +625,7 @@ const HomePage: FC = () => {
           {/* Section header */}
           <div style={{ marginBottom: 28 }}>
             <h2 style={{
-              fontFamily: 'var(--font-display)', fontSize: 18,
+              fontFamily: 'var(--font-display)', fontSize: 'clamp(1.1rem,2.5vw,1.4rem)',
               fontWeight: 700, color: 'var(--color-text)', marginBottom: 4,
             }}>
               التصنيفات المتاحة
@@ -742,7 +716,7 @@ const HomePage: FC = () => {
           {/* Section header */}
           <div style={{ marginBottom: 28 }}>
             <h2 style={{
-              fontFamily: 'var(--font-display)', fontSize: 18,
+              fontFamily: 'var(--font-display)', fontSize: 'clamp(1.1rem,2.5vw,1.4rem)',
               fontWeight: 700, color: 'var(--color-text)', marginBottom: 4,
             }}>
               Providers المجانية

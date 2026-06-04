@@ -15,6 +15,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import type { FC } from 'react'
 import gsap from 'gsap'
+import { prefersReducedMotion } from '../utils/motion'
 import { QUESTION_BANK } from '../data/questionBank'
 import type { BankSection } from '../data/questionBank'
 import EmptyState from '../components/ui/EmptyState'
@@ -57,6 +58,10 @@ const BankPage: FC = () => {
     if (!listRef.current) return
     const cards = listRef.current.querySelectorAll('.bank-card')
     if (cards.length === 0) return
+    if (prefersReducedMotion()) {
+      gsap.set(cards, { opacity: 1, y: 0 })
+      return
+    }
     gsap.fromTo(
       cards,
       { opacity: 0, y: 18 },
@@ -74,7 +79,7 @@ const BankPage: FC = () => {
   const totalAll = QUESTION_BANK.reduce((a, s) => a + s.questions.length, 0)
 
   return (
-    <div style={{ display: 'flex', minHeight: 'calc(100vh - 60px)' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', maxWidth: 1200, margin: '0 auto', paddingTop: 24, paddingBottom: 48, paddingRight: 'clamp(20px,4vw,56px)', paddingLeft: 'clamp(20px,4vw,56px)' }}>
 
       {/* ══ SIDEBAR: category filter ══════════════════════════ */}
       <aside
@@ -208,12 +213,12 @@ const BankPage: FC = () => {
                 <div style={{
                   display: 'flex', alignItems: 'center', gap: 8,
                   marginBottom: 10, paddingBottom: 8,
-                  borderBottom: `1px solid ${section.color}22`,
+                  borderBottom: `1px solid color-mix(in srgb, ${section.color} 13%, transparent)`,
                 }}>
                   <span style={{
                     fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 99,
-                    background: `${section.color}18`, color: section.color,
-                    border: `1px solid ${section.color}33`,
+                    background: `color-mix(in srgb, ${section.color} 10%, transparent)`, color: section.color,
+                    border: `1px solid color-mix(in srgb, ${section.color} 20%, transparent)`,
                   }}>
                     {section.label}
                   </span>
@@ -239,7 +244,7 @@ const BankPage: FC = () => {
                       marginBottom: 6,
                       overflow: 'hidden',
                       transition: 'border-color 150ms',
-                      boxShadow: isOpen ? `0 0 16px ${section.color}11` : 'none',
+                      boxShadow: isOpen ? `0 0 16px color-mix(in srgb, ${section.color} 7%, transparent)` : 'none',
                     }}
                   >
                     {/* Question row */}
@@ -255,7 +260,7 @@ const BankPage: FC = () => {
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, flexWrap: 'wrap' }}>
                         <span style={{
                           fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 6, flexShrink: 0,
-                          background: `${section.color}18`, color: section.color,
+                          background: `color-mix(in srgb, ${section.color} 10%, transparent)`, color: section.color,
                         }}>
                           {String(qi + 1).padStart(2, '0')}
                         </span>
@@ -274,7 +279,7 @@ const BankPage: FC = () => {
                     {/* Answer panel */}
                     {isOpen && (
                       <div style={{
-                        borderTop: `1px solid ${section.color}22`,
+                        borderTop: `1px solid color-mix(in srgb, ${section.color} 13%, transparent)`,
                         background: 'var(--bg-primary)',
                         animation: 'fadeIn 0.2s ease-out both',
                       }}>
@@ -294,14 +299,14 @@ const BankPage: FC = () => {
                           <div style={{
                             margin: '0 14px 14px',
                             borderRadius: 8,
-                            border: `1px solid ${section.color}33`,
+                            border: `1px solid color-mix(in srgb, ${section.color} 20%, transparent)`,
                             overflow: 'hidden',
                           }}>
                             <button
                               onClick={e => toggleTip(key, e)}
                               style={{
                                 width: '100%', textAlign: 'right', padding: '7px 12px',
-                                background: `${section.color}0d`, border: 'none', cursor: 'pointer',
+                                background: `color-mix(in srgb, ${section.color} 5%, transparent)`, border: 'none', cursor: 'pointer',
                                 display: 'flex', alignItems: 'center', gap: 6,
                                 fontSize: 11, fontWeight: 700, color: section.color,
                                 fontFamily: 'inherit',
@@ -315,10 +320,10 @@ const BankPage: FC = () => {
                             {showTip[key] && (
                               <div style={{
                                 padding: '8px 12px 10px',
-                                background: `${section.color}08`,
+                                background: `color-mix(in srgb, ${section.color} 3%, transparent)`,
                                 fontSize: 12, lineHeight: 1.75,
                                 color: 'var(--color-text-muted)',
-                                borderTop: `1px solid ${section.color}22`,
+                                borderTop: `1px solid color-mix(in srgb, ${section.color} 13%, transparent)`,
                                 animation: 'fadeIn 0.18s ease-out both',
                               }}>
                                 {item.senior}

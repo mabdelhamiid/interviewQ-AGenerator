@@ -28,8 +28,8 @@
   --border-subtle: #1e1e2e;
   --border-default: #2a2a3e;
   --text-primary: #e8e8f0;
-  --text-muted: #6b6b80;
-  --text-faint: #3a3a50;
+  --text-muted: #7a7a90;
+  --text-faint: #5a5a78;
   --accent: #6366f1;
   --accent-hover: #4f46e5;
   --accent-muted: rgba(99,102,241,0.1);
@@ -70,8 +70,8 @@
 
   /* ── Text scale ──────────────────────────────────────────── */
   --color-text:        #e8e8f0;
-  --color-text-muted:  #6b6b80;
-  --color-text-subtle: #3a3a50;
+  --color-text-muted:  #7a7a90;
+  --color-text-subtle: #5a5a78;
 
   /* ── Semantic status ─────────────────────────────────────── */
   --color-success: #10b981;
@@ -182,7 +182,7 @@ h1, h2, h3, h4, h5, h6 {
 button  { font-family: inherit; cursor: pointer; }
 button:disabled { cursor: not-allowed; opacity: 0.5; }
 input, textarea, select { font-family: inherit; }
-pre     { font-family: 'Fira Code', 'Consolas', monospace !important; }
+pre     { font-family: 'Fira Code', 'Consolas', monospace; }
 a       { text-decoration: none; color: inherit; }
 
 /* ── Focus ring (accessibility) ──────────────────────────── */
@@ -339,6 +339,17 @@ a       { text-decoration: none; color: inherit; }
 .animate-fade-in    { animation: fadeIn 0.25s ease-out both; }
 .animate-shimmer    { animation: var(--animate-shimmer); }
 .animate-spin       { animation: spin 1s linear infinite; }
+.animate-pulse-dim  { animation: pulseDim 1.9s ease-in-out infinite; }
+
+@keyframes pulseDim {
+  0%, 100% { opacity: 0.5; }
+  50%       { opacity: 1;   }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0);     }
+}
 
 @keyframes spin {
   to { transform: rotate(360deg); }
@@ -358,4 +369,12 @@ a       { text-decoration: none; color: inherit; }
     linear-gradient(rgba(255,255,255,0.014) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255,255,255,0.014) 1px, transparent 1px);
   background-size: 44px 44px;
+}
+
+/* ── Reduced motion — immediately reveal GSAP targets ─────── */
+@media (prefers-reduced-motion: reduce) {
+  .gsap-reveal, .gsap-reveal-left, .gsap-reveal-right {
+    opacity: 1 !important;
+    transform: none !important;
+  }
 }

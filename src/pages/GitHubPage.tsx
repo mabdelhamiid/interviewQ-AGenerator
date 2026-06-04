@@ -13,8 +13,10 @@
 import { useState, useEffect } from 'react'
 import type { FC } from 'react'
 import gsap from 'gsap'
+import { prefersReducedMotion } from '../utils/motion'
 import PageContainer from '../components/ui/PageContainer'
 import Button from '../components/ui/Button'
+import TextField from '../components/ui/TextField'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 import EmptyState from '../components/ui/EmptyState'
 import { dynColor } from '../utils/dynColor'
@@ -61,6 +63,10 @@ const GitHubPage: FC = () => {
   useEffect(() => {
     if (repos.length === 0) return
     const cards = document.querySelectorAll('.repo-card')
+    if (prefersReducedMotion()) {
+      gsap.set(cards, { opacity: 1, y: 0 })
+      return
+    }
     gsap.fromTo(
       cards,
       { opacity: 0, y: 28 },
@@ -98,14 +104,6 @@ const GitHubPage: FC = () => {
     if (repos.length > 0) search(query, s)
   }
 
-  /* ── GSAP search input focus/blur glow ── */
-  function handleSearchFocus(e: React.FocusEvent<HTMLInputElement>) {
-    gsap.to(e.currentTarget, { boxShadow: '0 0 0 3px rgba(59,130,246,0.20)', duration: 0.25 })
-  }
-  function handleSearchBlur(e: React.FocusEvent<HTMLInputElement>) {
-    gsap.to(e.currentTarget, { boxShadow: '0 0 0 0px transparent', duration: 0.20 })
-  }
-
   /* ── Quick search suggestions ── */
   const suggestions = [
     'react interview questions',
@@ -137,27 +135,13 @@ const GitHubPage: FC = () => {
 
       {/* ── Search input + button ── */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-        <input
+        <TextField
           type="text"
           value={query}
           onChange={e => setQuery(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && search()}
-          onFocus={handleSearchFocus}
-          onBlur={handleSearchBlur}
           placeholder="مثال: react interview questions, typescript starter..."
-          style={{
-            flex: 1, padding: '11px 16px',
-            background: 'rgba(255,255,255,0.035)',
-            backdropFilter: 'blur(16px)',
-            WebkitBackdropFilter: 'blur(16px)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: 12, outline: 'none',
-            color: 'var(--color-text)', fontSize: 13,
-            fontFamily: 'inherit',
-            transition: 'border-color var(--transition-fast)',
-          }}
-          onMouseEnter={e => { (e.currentTarget as HTMLInputElement).style.borderColor = 'rgba(255,255,255,0.14)' }}
-          onMouseLeave={e => { (e.currentTarget as HTMLInputElement).style.borderColor = 'rgba(255,255,255,0.08)' }}
+          aria-label="بحث GitHub"
         />
         <Button onClick={() => search()} disabled={loading || !query.trim()}>
           {loading ? <LoadingSpinner size="sm" /> : 'بحث'}

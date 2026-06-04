@@ -5,7 +5,9 @@ import { useAppContext } from '../context/AppContext'
 import { CATEGORIES, LEVELS } from '../constants'
 import { AI_MODELS } from '../constants/models'
 import { useGenerate } from '../hooks/useGenerate'
+import { useCounter } from '../hooks/useCounter'
 import { dynColor } from '../utils/dynColor'
+import { prefersReducedMotion } from '../utils/motion'
 import EmptyState from '../components/ui/EmptyState'
 import Button from '../components/ui/Button'
 import SkeletonList from '../components/ui/SkeletonCard'
@@ -43,30 +45,13 @@ const CircularTimer: FC<{ timeLeft: number }> = ({ timeLeft }) => {
         transform="rotate(-90 36 36)"
         style={{ transition: 'stroke-dashoffset 1s linear, stroke 0.4s ease' }}
       />
-      <text x="36" y="41" textAnchor="middle" fill="currentColor" fontSize="13" fontWeight="700" fontFamily="Syne, system-ui">
+      <text x="36" y="41" textAnchor="middle" fill="currentColor" fontSize="13" fontWeight="700" fontFamily="Cairo, sans-serif">
         {timeLeft}
       </text>
     </svg>
   )
 }
 
-/* ── useCounter ─────────────────────────────────────────────── */
-function useCounter(target: number, active: boolean, duration = 1200) {
-  const [val, setVal] = useState(0)
-  useEffect(() => {
-    if (!active) return
-    if (target === 0) { setVal(0); return }
-    let current = 0
-    const inc = target / (duration / 16)
-    const id = setInterval(() => {
-      current += inc
-      if (current >= target) { setVal(target); clearInterval(id); return }
-      setVal(Math.floor(current))
-    }, 16)
-    return () => clearInterval(id)
-  }, [active, target, duration])
-  return val
-}
 
 /* ── PracticeCard ───────────────────────────────────────────── */
 interface PracticeCardProps {
@@ -579,6 +564,10 @@ const GeneratePage: FC = () => {
   useEffect(() => {
     const els = modelRefs.current.filter(Boolean)
     if (els.length === 0) return
+    if (prefersReducedMotion()) {
+      gsap.set(els, { opacity: 1, y: 0 })
+      return
+    }
     gsap.from(els, { opacity: 0, y: 16, duration: 0.45, stagger: 0.04, ease: 'power2.out' })
   }, []) // run once on mount
 
@@ -586,6 +575,10 @@ const GeneratePage: FC = () => {
   useEffect(() => {
     if (currentQs.length === 0) return
     const cards = document.querySelectorAll('.q-card')
+    if (prefersReducedMotion()) {
+      gsap.set(cards, { opacity: 1, y: 0 })
+      return
+    }
     gsap.fromTo(
       cards,
       { opacity: 0, y: 24 },
@@ -623,11 +616,11 @@ const GeneratePage: FC = () => {
 
   /* ── Normal generate view ── */
   return (
-    <div className="max-w-[1200px] mx-auto flex min-h-[calc(100vh-60px)]">
+    <div className="max-w-[1200px] mx-auto flex min-h-screen px-[clamp(20px,4vw,56px)] pt-6 pb-12">
 
       {/* ── Sidebar: glass panel with category + level filters ── */}
       <aside
-        className="glass w-[200px] flex-shrink-0 p-4 overflow-y-auto max-h-[calc(100vh-60px)] sticky top-[60px]"
+        className="glass w-[200px] flex-shrink-0 p-4 overflow-y-auto max-h-screen sticky top-0"
         style={{
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
@@ -771,22 +764,9 @@ const GeneratePage: FC = () => {
             {/* ── Practice + clear + saved buttons ── */}
             {currentQs.length > 0 && !loading && (
               <>
-                <button
-                  onClick={startPractice}
-                  style={{
-                    padding: '6px 16px', borderRadius: 10,
-                    background: 'rgba(59,130,246,0.14)',
-                    border: '1px solid rgba(59,130,246,0.35)',
-                    color: 'var(--color-accent)',
-                    fontSize: 12, fontWeight: 700,
-                    cursor: 'pointer', transition: 'all var(--transition-fast)',
-                    fontFamily: 'inherit',
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(59,130,246,0.22)'; e.currentTarget.style.transform = 'translateY(-1px)' }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(59,130,246,0.14)'; e.currentTarget.style.transform = 'translateY(0)' }}
-                >
+                <Button variant="secondary" size="sm" onClick={startPractice}>
                   ▶ ممارسة {currentQs.length} سؤال
-                </button>
+                </Button>
                 <Button variant="ghost" size="sm" onClick={handleClear}>مسح</Button>
                 <Button variant="secondary" size="sm" onClick={() => navigate('/saved')}>المحفوظة</Button>
               </>
@@ -906,7 +886,7 @@ const GeneratePage: FC = () => {
             <button
               onClick={() => generate(10)}
               style={{ background: currentCat.color, boxShadow: `0 4px 20px ${currentCat.color}44` }}
-              className="px-10 py-3 rounded-full text-sm font-bold text-white transition-all hover:brightness-110 active:scale-[0.97]"
+              className="px-10 py-3 rounded-full text-sm font-bold text-white transition-all hover:brightness-110 active:scale-[0.97] cursor-pointer"
             >
               ولّد 10 أكتر ↓
             </button>

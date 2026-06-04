@@ -72,9 +72,9 @@ const IconChevron = ({ flipped }: { flipped: boolean }) => (
    ══════════════════════════════════════════════════════════════ */
 const NAV = [
   { to: '/',         label: 'الرئيسية',    Icon: IconHome,     end: true  },
-  { to: '/generate', label: 'توليد أسئلة', Icon: IconGenerate, end: false },
+  { to: '/generate', label: 'ولّد بـ AI',    Icon: IconGenerate, end: false },
   { to: '/saved',    label: 'محفوظة',      Icon: IconSaved,    end: false },
-  { to: '/bank',     label: 'مكتبة الأسئلة', Icon: IconBank,   end: false },
+  { to: '/bank',     label: 'مكتبة جاهزة', Icon: IconBank,    end: false },
   { to: '/github',   label: 'GitHub',      Icon: IconGitHub,   end: false },
   { to: '/settings', label: 'الإعدادات',   Icon: IconSettings, end: false },
 ]
@@ -94,6 +94,16 @@ const Shell: FC<ShellProps> = ({ children }) => {
 
   /* Refs for GSAP targets */
   const logoRef = useRef<HTMLDivElement>(null)
+
+  /* ── Responsive: auto-collapse sidebar below 900px ── */
+  useEffect(() => {
+    function check() {
+      if (window.innerWidth < 900) setCollapsed(true)
+    }
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
 
   /* ── GSAP: logo fade in on mount ── */
   useEffect(() => {

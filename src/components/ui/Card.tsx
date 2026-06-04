@@ -6,24 +6,39 @@ interface CardProps extends HTMLAttributes<HTMLDivElement> {
   padding?: 'sm' | 'md' | 'none'
 }
 
-const paddingCls = { sm: 'p-4', md: 'p-6', none: '' }
+const paddingMap = { sm: '1rem', md: '1.5rem', none: '0' }
 
 const Card: FC<CardProps> = ({
   hover   = false,
   active  = false,
   padding = 'md',
   className = '',
+  style,
   children,
   ...rest
 }) => (
   <div
-    className={[
-      'bg-gradient-to-br from-navy-800 to-navy-900 border rounded-xl',
-      active  ? 'border-blue-700/50 shadow-md shadow-blue-900/30' : 'border-navy-600',
-      hover   ? 'hover:border-navy-500 hover:shadow-lg hover:shadow-blue-950/50 transition-all cursor-pointer' : '',
-      paddingCls[padding],
-      className,
-    ].join(' ')}
+    className={className}
+    style={{
+      background: 'var(--color-surface, #111118)',
+      border: `1px solid ${active ? 'rgba(99,102,241,0.40)' : 'rgba(255,255,255,0.07)'}`,
+      borderRadius: 14,
+      padding: paddingMap[padding],
+      boxShadow: active ? '0 0 0 1px rgba(99,102,241,0.20), var(--shadow-glass)' : 'var(--shadow-glass)',
+      transition: hover ? 'border-color var(--transition-fast), box-shadow var(--transition-fast)' : undefined,
+      cursor: hover ? 'pointer' : undefined,
+      ...style,
+    }}
+    onMouseEnter={hover ? e => {
+      const el = e.currentTarget as HTMLElement
+      el.style.borderColor = 'rgba(99,102,241,0.35)'
+      el.style.boxShadow   = '0 4px 24px rgba(99,102,241,0.12), var(--shadow-glass)'
+    } : undefined}
+    onMouseLeave={hover ? e => {
+      const el = e.currentTarget as HTMLElement
+      el.style.borderColor = active ? 'rgba(99,102,241,0.40)' : 'rgba(255,255,255,0.07)'
+      el.style.boxShadow   = active ? '0 0 0 1px rgba(99,102,241,0.20), var(--shadow-glass)' : 'var(--shadow-glass)'
+    } : undefined}
     {...rest}
   >
     {children}

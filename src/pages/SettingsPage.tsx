@@ -10,14 +10,16 @@
  *  - Password show/hide toggle
  *  - Auto-save on input change (via AppContext)
  */
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import type { FC } from 'react'
 import gsap from 'gsap'
 import { useAppContext } from '../context/AppContext'
 import { PROVIDER_INFO } from '../constants'
 import type { ApiKeys } from '../types'
 import PageContainer from '../components/ui/PageContainer'
+import TextField from '../components/ui/TextField'
 import { dynColor } from '../utils/dynColor'
+import { prefersReducedMotion } from '../utils/motion'
 
 /* ── Provider groupings ──────────────────────────────────── */
 const FREE_PROVIDERS = ['google', 'groq', 'cerebras', 'openrouter', 'together', 'mistral', 'cohere'] as const
@@ -29,11 +31,16 @@ const PAID_PROVIDERS = ['anthropic', 'openai'] as const
 const SettingsPage: FC = () => {
   const { keys, setKeys, toast } = useAppContext()
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({})
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   /* ── GSAP: stagger reveal all provider cards on mount ── */
   useEffect(() => {
     const cards = document.querySelectorAll('.provider-card')
     if (!cards.length) return
+    if (prefersReducedMotion()) {
+      gsap.set(cards, { opacity: 1, y: 0 })
+      return
+    }
     gsap.fromTo(
       cards,
       { opacity: 0, y: 24 },
@@ -44,22 +51,15 @@ const SettingsPage: FC = () => {
   /* ── Handler: update a provider key (auto-saves to localStorage via context) ── */
   function handleChange(provider: keyof ApiKeys, value: string) {
     setKeys({ ...keys, [provider]: value })
-    toast('تم الحفظ تلقائياً', 'success')
+    if (toastTimer.current) clearTimeout(toastTimer.current)
+    toastTimer.current = setTimeout(() => {
+      toast('تم الحفظ تلقائياً', 'success')
+    }, 800)
   }
 
   /* ── Handler: toggle password visibility for a provider ── */
   function toggleShow(pid: string) {
     setShowKeys(prev => ({ ...prev, [pid]: !prev[pid] }))
-  }
-
-  /* ── GSAP focus glow on input ── */
-  function handleFocus(e: React.FocusEvent<HTMLInputElement>) {
-    gsap.to(e.currentTarget, { boxShadow: '0 0 0 3px rgba(124,92,252,0.20)', duration: 0.25 })
-  }
-
-  /* ── GSAP blur: remove glow from input ── */
-  function handleBlur(e: React.FocusEvent<HTMLInputElement>) {
-    gsap.to(e.currentTarget, { boxShadow: '0 0 0 0px transparent', duration: 0.20 })
   }
 
   /* ── Render a single provider card ── */
@@ -120,42 +120,31 @@ const SettingsPage: FC = () => {
 
         {/* API key input row */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <input
+          <TextField
             type={showKeys[pid] ? 'text' : 'password'}
             placeholder={info.placeholder}
             value={val}
             onChange={e => handleChange(pid, e.target.value)}
-            onFocus={handleFocus}
-            onBlur={handleBlur}
             autoComplete="off"
             spellCheck={false}
             aria-label={`API Key لـ ${info.label}`}
-            style={{
-              flex: 1, padding: '9px 12px',
-              background: 'rgba(0,0,0,0.25)',
-              border: `1px solid ${val ? 'var(--c)' : 'rgba(255,255,255,0.09)'}`,
-              borderRadius: 9, outline: 'none',
-              color: 'var(--color-text)', fontSize: 12,
-              fontFamily: 'var(--font-family-mono)',
-              transition: 'border-color var(--transition-fast)',
-            }}
+            dynBorder
+            style={{ fontSize: 12, fontFamily: 'var(--font-family-mono)' }}
+            suffix={
+              <button
+                onClick={() => toggleShow(pid)}
+                style={{
+                  padding: '4px 6px', background: 'transparent',
+                  border: 'none', fontSize: 14, cursor: 'pointer',
+                  color: 'var(--color-text-subtle)',
+                  lineHeight: 1,
+                }}
+                aria-label={showKeys[pid] ? 'إخفاء الـ key' : 'إظهار الـ key'}
+              >
+                {showKeys[pid] ? '🙈' : '👁'}
+              </button>
+            }
           />
-
-          {/* Show/hide password toggle */}
-          <button
-            onClick={() => toggleShow(pid)}
-            style={{
-              padding: '8px 10px', background: 'transparent',
-              border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: 9, fontSize: 14, cursor: 'pointer',
-              transition: 'border-color var(--transition-fast)',
-            }}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.18)' }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.08)' }}
-            aria-label={showKeys[pid] ? 'إخفاء الـ key' : 'إظهار الـ key'}
-          >
-            {showKeys[pid] ? '🙈' : '👁'}
-          </button>
 
           {/* Valid checkmark — shown when key is entered */}
           {val && (

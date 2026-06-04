@@ -43,8 +43,6 @@ const ToastEntry: FC<{ toast: ToastItem; onDismiss: (id: string) => void }> = ({
 
   return (
     <div
-      role="alert"
-      aria-live="polite"
       className={[
         'flex items-center gap-3 px-4 py-3 rounded-xl border shadow-lg',
         'animate-slide-up min-w-[260px] max-w-[360px]',
@@ -71,7 +69,9 @@ const ToastContainer: FC<ToastProps> = ({ toasts, onDismiss }) => {
 
   return (
     <div
-      className="fixed bottom-6 left-6 z-[200] flex flex-col gap-2"
+      className="fixed bottom-6 right-6 z-[200] flex flex-col gap-2"
+      aria-live="polite"
+      role="log"
       aria-label="إشعارات"
     >
       {toasts.map(t => (
